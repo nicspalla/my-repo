@@ -30,9 +30,10 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
     maintainers = ['nicspalla']
 
-    version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-advanced', branch='advanced', git="https://github.com/yambo-code/yambo-devel")
     #version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
-    #version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-maintenance', branch='maintenance-master')
+    version('develop-gpu', branch='fixies-devel-gpu', git="https://github.com/yambo-code/yambo-devel")
     version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
     version('5.2.2', sha256='2ddd6356830ce9302e304b7627cff3aa973846cf893f91742b4390d0b53d63d4')
     version('5.2.1', sha256='0ac362854313927d75bbf87be98ff58447f3805f79724c38dc79df07f03a7046')
@@ -61,21 +62,25 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('openmp', default=False, description='Enable OpenMP support')
     depends_on('mpi', when='+mpi')
 
-    conflicts('+scalapack', when='~mpi',
-              msg="Parallel linear algebra available only with +mpi")
+    # Liear Algebra variants and dependencies
     depends_on('blas')
     depends_on('lapack')
     variant('scalapack', default=False, description='Activate support for parallel linear algebra with SCALAPACK')
     depends_on('scalapack', when='+scalapack')
+    conflicts('+scalapack', when='~mpi',
+              msg="Parallel linear algebra available only with +mpi")
     variant('slepc', default=False, description='Activate support for linear algebra with SLEPc and PETSc')
-    depends_on('petsc+complex~superlu-dist~hypre~metis+int64', when='+slepc')
-    depends_on('petsc+mpi', when='+slepc+mpi')
-    depends_on('petsc+double', when='+slepc+dp')
-    depends_on('petsc~cuda', when='@:5.2.0 +slepc')
-    depends_on('slepc~arpack', when='+slepc')
-    depends_on('slepc@:3.7.4', when='@:4.5.3 +slepc')
-    depends_on('slepc~cuda', when='@:5.2.0 +slepc')
-    
+    with when('+slepc'):
+        depends_on('petsc+complex~superlu-dist~hypre~metis')
+        depends_on('petsc+mpi', when='+mpi')
+        depends_on('petsc+double+int64', when='+dp')
+        depends_on('petsc~double', when='~dp')
+        depends_on('petsc~cuda', when='@:5.2.0')
+        depends_on('slepc~arpack')
+        depends_on('slepc@:3.7.4', when='@:4.5.3')
+        depends_on('slepc~cuda', when='@:5.2.0')
+
+    # GPU variants and dependecies
     variant('openmp5', default=False, description='Build with OpenMP-GPU support')
     variant('openacc', default=False, description='Build with OpenACC')
     variant('cuda-fortran', default=False, description='Build with CUDA-Fortran')
@@ -110,24 +115,24 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     # variant('yambopy', default=False, description='Install Yambopy package')
     # depends_on('py-yambopy', when='+yambopy')
 
-    # FFTW
+    # FFTW dependecies
     depends_on('fftw-api@3~mpi', when='~mpi')
     depends_on('fftw-api@3+mpi', when='+mpi')
 
-    # HDF5
+    # HDF5 dependecies
     variant('parallel_io', default=True, when='@4.4.0: +mpi', description='Activate the HDF5 parallel I/O')
     depends_on('hdf5+fortran+hl~mpi', when='@:4.4.0')
     depends_on('hdf5+fortran+hl~mpi', when='~parallel_io')
     depends_on('hdf5+fortran+hl+mpi', when='+parallel_io')
     depends_on('hdf5+fortran+hl~mpi', when='~mpi')
 
-    # NETCDF
+    # NETCDF dependecies
     depends_on('netcdf-c~mpi', when='~parallel_io')
     depends_on('netcdf-c+mpi', when='+parallel_io')
     depends_on('netcdf-c~mpi', when='~mpi')
     depends_on('netcdf-fortran')
 
-    # LIBXC
+    # LIBXC dependecies
     depends_on('libxc@2.0.3:3.0.0~cuda', when='@:5.0.99')
     depends_on('libxc@5.0:~cuda', when='@5.1.0:')
 
@@ -137,66 +142,91 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         depends_on("fftw +openmp", when="^fftw")
         depends_on("petsc +openmp", when="^petsc")
 
-    # IOTK
+    # IOTK external resource
     resource(
-       name='iotk',
-       url='https://github.com/yambo-code/yambo-libraries/raw/master/external/iotk-y1.2.2.tar.gz',
-       sha256='64af6a4b98f3b62fcec603e4e1b00ef994f95a0efa53ab6593ebcfe6de1739ef',
-       destination='lib/iotk'
+        name='iotk',
+        url='https://github.com/yambo-code/yambo-libraries/raw/master/external/iotk-y1.2.2.tar.gz',
+        sha256='64af6a4b98f3b62fcec603e4e1b00ef994f95a0efa53ab6593ebcfe6de1739ef',
+        destination='lib/iotk'
     )
 
-    # Yambo driver
+    # Yambo Driver external resource
     resource(
-       name='Ydriver',
-       url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-0.0.2.tar.gz',
-       sha256='63984c3eb2d28320b320f1d9b3a2c1efcd3c9505a10d887c8bbd54513442202c',
-       destination='',
-       placement={'driver': 'lib/yambo/driver'},
-       when='@5.0.0:5.0.99'
+        name='Ydriver',
+        url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-0.0.2.tar.gz',
+        sha256='63984c3eb2d28320b320f1d9b3a2c1efcd3c9505a10d887c8bbd54513442202c',
+        destination='',
+        placement={'driver': 'lib/yambo/driver'},
+        when='@5.0.0:5.0.99'
     )
     resource(
-       name='Ydriver',
-       url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-1.1.0.tar.gz',
-       sha256='6c316d613f5a41ddd15efad7ba97e4712f87d7e56c073ba5458caf424afcb97a',
-       destination='',
-       placement={'driver': 'lib/yambo/driver'},
-       when='@5.1.0:5.1.99'
+        name='Ydriver',
+        url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-1.1.0.tar.gz',
+        sha256='6c316d613f5a41ddd15efad7ba97e4712f87d7e56c073ba5458caf424afcb97a',
+        destination='',
+        placement={'driver': 'lib/yambo/driver'},
+        when='@5.1.0:5.1.99'
     )
     resource(
-       name='Ydriver',
-       url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.2.0.tar.gz',
-       sha256='0f29a44e9c4b49d3f6be3f159a7ef415932b2ae2f2fdba163af60a0673befe6e',
-       destination='lib/yambo/Ydriver',
-       placement={'config': 'config',
-                  'configure': 'configure',
-                  'example': 'example',
-                  'include': 'include',
-                  'lib': 'lib',
-                  'bin': 'bin',
-                  'Makefile': 'Makefile',
-                  'src': 'src',
-              },
-       when='@5.2.0:5.2.99'
+        name='Ydriver',
+        url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.2.0.tar.gz',
+        sha256='0f29a44e9c4b49d3f6be3f159a7ef415932b2ae2f2fdba163af60a0673befe6e',
+        destination='lib/yambo/Ydriver',
+        placement={'config': 'config',
+                   'configure': 'configure',
+                   'example': 'example',
+                   'include': 'include',
+                   'lib': 'lib',
+                   'bin': 'bin',
+                   'Makefile': 'Makefile',
+                   'src': 'src',
+               },
+        when='@5.2.0:5.2.99'
     )
     resource(
-       name='Ydriver',
-       url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.4.tar.gz',
-       sha256='a3ac8de158fcd76cfb7c137f7096cff2d95eb9db2fe207d54476c73013f1406e',
-       destination='lib/yambo/Ydriver',
-       placement={'config': 'config',
-                  'configure': 'configure',
-                  'example': 'example',
-                  'include': 'include',
-                  'lib': 'lib',
-                  'bin': 'bin',
-                  'Makefile': 'Makefile',
-                  'src': 'src',
-              },
-       when='@develop:'
+        name='Ydriver',
+        git='https://github.com/yambo-code/Ydriver.git',
+        branch='devel-gpu',
+        destination='lib/yambo/Ydriver',
+        placement={'config': 'config',
+                   'configure': 'configure',
+                   'example': 'example',
+                   'include': 'include',
+                   'lib': 'lib',
+                   'bin': 'bin',
+                   'Makefile': 'Makefile',
+                   'src': 'src',
+               },
+        when='@develop-gpu'
+    )
+    resource(
+        name='Ydriver',
+        url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.4.tar.gz',
+        sha256='a3ac8de158fcd76cfb7c137f7096cff2d95eb9db2fe207d54476c73013f1406e',
+        destination='lib/yambo/Ydriver',
+        placement={'config': 'config',
+                   'configure': 'configure',
+                   'example': 'example',
+                   'include': 'include',
+                   'lib': 'lib',
+                   'bin': 'bin',
+                   'Makefile': 'Makefile',
+                   'src': 'src',
+               },
+        when='@develop-advanced'
     )
 
-    # Sanity check
-    sanity_check_is_file = ["bin/yambo", "bin/ypp", "bin/a2y", "bin/c2y", "bin/p2y"]
+#    @on_package_attributes(run_tests=True)
+    @run_after("build")
+    def check_build(self):
+        sanity_list = ["bin/yambo", "bin/ypp", "bin/a2y", "bin/c2y", "bin/p2y", 'pippo']
+        spec = self.spec
+        if '+ph' in spec: sanity_list.extend(['bin/yambo_ph', 'bin/ypp_ph'])
+        if '+rt' in spec: sanity_list.extend(['bin/yambo_rt', 'bin/ypp_rt'])
+        if '+sc' in spec: sanity_list.extend(['bin/yambo_sc', 'bin/ypp_sc'])
+        if '+nl' in spec: sanity_list.extend(['bin/yambo_nl', 'bin/ypp_nl'])
+        print(sanity_list)
+        self.sanity_check_is_file = sanity_list
 
     @property
     def build_targets(self):
