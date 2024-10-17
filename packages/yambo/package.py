@@ -31,9 +31,9 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     maintainers = ['nicspalla']
 
     version('develop-advanced', branch='advanced', git="https://github.com/yambo-code/yambo-devel")
-    #version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
     version('develop-maintenance', branch='maintenance-master')
-    version('develop-gpu', branch='fixies-devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-gpu', branch='tech-gpu')
+    version('5.2.4', sha256='7c3f2602389fc29a0d8570c2fe85fe3768d390cfcbb2d371e83e75c6c951d5fc')
     version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
     version('5.2.2', sha256='2ddd6356830ce9302e304b7627cff3aa973846cf893f91742b4390d0b53d63d4')
     version('5.2.1', sha256='0ac362854313927d75bbf87be98ff58447f3805f79724c38dc79df07f03a7046')
@@ -73,7 +73,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     with when('+slepc'):
         depends_on('petsc+complex~superlu-dist~hypre~metis')
         depends_on('petsc+mpi', when='+mpi')
-        depends_on('petsc+double+int64', when='+dp')
+        depends_on('petsc+double', when='+dp')
         depends_on('petsc~double', when='~dp')
         depends_on('petsc~cuda', when='@:5.2.0')
         depends_on('slepc~arpack')
@@ -185,8 +185,8 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     )
     resource(
         name='Ydriver',
-        git='https://github.com/yambo-code/Ydriver.git',
-        branch='devel-gpu',
+        url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.4.tar.gz',
+        sha256='a3ac8de158fcd76cfb7c137f7096cff2d95eb9db2fe207d54476c73013f1406e',
         destination='lib/yambo/Ydriver',
         placement={'config': 'config',
                    'configure': 'configure',
@@ -197,7 +197,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                    'Makefile': 'Makefile',
                    'src': 'src',
                },
-        when='@develop-gpu'
+        when='@develop-advanced'
     )
     resource(
         name='Ydriver',
@@ -213,20 +213,10 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                    'Makefile': 'Makefile',
                    'src': 'src',
                },
-        when='@develop-advanced'
+        when='@develop-gpu'
     )
 
-#    @on_package_attributes(run_tests=True)
-    @run_after("build")
-    def check_build(self):
-        sanity_list = ["bin/yambo", "bin/ypp", "bin/a2y", "bin/c2y", "bin/p2y", 'pippo']
-        spec = self.spec
-        if '+ph' in spec: sanity_list.extend(['bin/yambo_ph', 'bin/ypp_ph'])
-        if '+rt' in spec: sanity_list.extend(['bin/yambo_rt', 'bin/ypp_rt'])
-        if '+sc' in spec: sanity_list.extend(['bin/yambo_sc', 'bin/ypp_sc'])
-        if '+nl' in spec: sanity_list.extend(['bin/yambo_nl', 'bin/ypp_nl'])
-        print(sanity_list)
-        self.sanity_check_is_file = sanity_list
+    sanity_check_is_file = ["bin/yambo", "bin/ypp", "bin/a2y", "bin/c2y", "bin/p2y"]
 
     @property
     def build_targets(self):
@@ -473,7 +463,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
             if '@develop-gpu' in spec:
                 args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
                 args.append('--with-cuda-runtime={0}.{1}'.format(*spec['cuda'].version))
-                args.append('--with-cuda-path={0}'.format(spec['cuda'].prefix))
+                # args.append('--with-cuda-path={0}'.format(spec['cuda'].prefix))
             else:
                 enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(*spec['cuda'].version)
                 enable_cuda += ',cc{0}'.format(*spec.variants['cuda_arch'].value)

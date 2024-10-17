@@ -90,14 +90,18 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
             args.append('--enable-openmp5')
 
         # BLAS
-        args.append('--with-blas-libs={0}'.format(spec['blas'].libs))
+        if '^nvhpc' in spec:
+            args.append('--with-blas-libs={0}'.format('-lblas'))
+        else:
+            args.append('--with-blas-libs={0}'.format(spec['blas'].libs))
 
         # CUDA
         args.extend(self.enable_or_disable('cuda'))
         if '+cuda' in spec:
             args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
             args.append('--with-cuda-runtime={0}.{1}'.format(*spec['cuda'].version))
-            args.append('--with-cuda-path={0}'.format(spec['cuda'].home))
+            if '%nvhpc' not in spec:
+                args.append('--with-cuda-path={0}'.format(spec['cuda'].home))
             
         # ROCm
         args.extend(self.enable_or_disable('rocm'))
