@@ -21,6 +21,8 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     maintainers = ['nicspalla']
 
     version('develop', branch='develop')
+    version("0.8.5", sha256="498d5c6804e697123d382d9dd35dedeb4b64228704f84711877c842b851d37df")
+    version("0.8.4", sha256="d1b1432300dfd4dfcb31703e873ad68f3b33b492c596d0b8c668ff38c2cc3b5e")
     version("0.8.3", sha256="3d2d4264df8c57da2791b0f94def52d789d67c6fe7ad5960f96c96dfc6c25cb2")
     version("0.8.2", sha256="c184de73f424e9437e352eb0e35716514348a7cd88ebac3ad7a52c66c4e4ba9c")
 
@@ -73,10 +75,17 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
             env.set('CPP', "cpp -E")
             env.set('FPP', "nvfortran -Mpreprocess -E")
             env.set('F90SUFFIX', ".f90")
+        if '%gcc' in spec:
+            env.set('CC', "gcc")
+            env.set('FC', "gfortran")
+            env.set('F90', "gfortran")
+            env.set('CPP', "gcc -E -P")
+            env.set('FPP', "gfortran -E -P")
+            env.set('F90SUFFIX', ".f90")
     
     def configure_args(self):
         spec = self.spec
-        args = ['--disable-parallel --enable-cuda-env-check=no']
+        args = ['--enable-cuda-env-check=no']
 
         # OpenMP
         args.extend(self.enable_or_disable('openmp'))
