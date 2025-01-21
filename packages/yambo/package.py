@@ -25,7 +25,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     """
 
     homepage = "http://www.yambo-code.eu"
-    url = "https://github.com/yambo-code/yambo/archive/5.2.2.tar.gz"
+    url = "https://github.com/yambo-code/yambo/archive/5.3.0.tar.gz"
     git = "https://github.com/yambo-code/yambo.git"
 
     maintainers = ['nicspalla']
@@ -34,6 +34,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     version('develop-maintenance', branch='maintenance-master')
     version('develop-gpu', branch='tech-gpu')
     version('develop-arm', branch='tech-arm', git="https://github.com/nicspalla/yambo")
+    version('5.3.0', sha256='47b7591b31f833f371f6538050ac27e66d7ddb6f82034cad0100a8f02b3d8072')
     version('5.2.4', sha256='7c3f2602389fc29a0d8570c2fe85fe3768d390cfcbb2d371e83e75c6c951d5fc')
     version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
     version('5.2.2', sha256='2ddd6356830ce9302e304b7627cff3aa973846cf893f91742b4390d0b53d63d4')
@@ -99,9 +100,9 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('nvtx', default=False, description='Enable NVTX support', when='+cuda %nvhpc')
     variant('magma', default=False, description='Enable Magma support', when='+cuda %nvhpc')
     depends_on('magma+cuda', when='+magma')
-    with when('@develop'):
-        depends_on('devicexlib+openmp', when='+openmp')
+    with when('@5.3.0:'):
         depends_on('devicexlib~cuda-fortran~openacc~openmp5', when='~cuda-fortran~openacc~openmp5')
+        depends_on('devicexlib+openmp', when='+openmp')
         depends_on('devicexlib+cuda-fortran+cuda', when='+cuda-fortran+cuda %nvhpc')
         depends_on('devicexlib+openacc+cuda', when='+openacc+cuda')
     
@@ -184,12 +185,12 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                    'Makefile': 'Makefile',
                    'src': 'src',
                },
-        when='@5.2.0:5.2.99'
+        when='@5.2.0:5.2.3'
     )
     resource(
         name='Ydriver',
-        url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.4.tar.gz',
-        sha256='a3ac8de158fcd76cfb7c137f7096cff2d95eb9db2fe207d54476c73013f1406e',
+        url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.4.2.tar.gz',
+        sha256='c242f0700a224325ff59326767614a561b02ce16ddb2ce6c13ddd2d5901cc3e4',
         destination='lib/yambo/Ydriver',
         placement={'config': 'config',
                    'configure': 'configure',
@@ -200,7 +201,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                    'Makefile': 'Makefile',
                    'src': 'src',
                },
-        when='@develop'
+        when='@5.2.4'
     )
 
     sanity_check_is_file = ["bin/yambo", "bin/ypp", "bin/a2y", "bin/c2y", "bin/p2y"]
@@ -238,14 +239,14 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     @run_before('configure')
     def filter_ydriver(self):
         spec = self.spec
-        if '@5.1.0:5.1.99' in spec or '@develop' in spec:
+        if '@5.1.0:5.1.99' in spec:
             # solve issue for parallel compilation
             filter_file('\$\(MAKE\) \$\(MAKEFLAGS\) -f Makefile.loc', 
                         r'$(MAKE) -f Makefile.loc $(MAKEFLAGS)', 
                         'config/mk/global/functions/get_libraries.mk')
             # block Ydriver download
             filter_file('; \$\(getsrc_git\); \$\(call link_it,"yambo"\)', ' ', 'lib/archive/Makefile.loc')
-        if '@5.2.0:' in spec:
+        if '@5.2.0:5.2.99' in spec:
             # block Ydriver download
             filter_file('; \$\(call getsrc_git,"Ydriver"\); \$\(call copy_driver,"Ydriver"\)', ' ', 'lib/archive/Makefile.loc')
 
@@ -383,7 +384,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
             elif '%gcc' in spec:
                 comp = "gnu"
             elif '%nvhpc' in spec:
-                comp = "pgi"
+                comp = "nvhpc"
             if "+openmp" in spec:
                 comp += "_thr"
             mkl_line += mkl_lines[comp]
@@ -444,7 +445,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
         # Other dependencies
         args.append('--with-libxc-path={0}'.format(spec['libxc'].prefix))
-        if '@develop' in spec:
+        if '@5.3.0' in spec:
             args.append('--with-devxlib-path={0}'.format(spec['devicexlib'].home))
 
         # GPU
@@ -452,7 +453,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         if '+openacc' in spec: args.append('--enable-openacc')
         if '+openmp5' in spec: args.append('--enable-openmp5')
         if '+cuda' in spec:
-            if '@develop' in spec:
+            if '@5.3.0' in spec:
                 args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
                 args.append('--with-cuda-runtime={0}.{1}'.format(*spec['cuda'].version))
                 # args.append('--with-cuda-path={0}'.format(spec['cuda'].prefix))
