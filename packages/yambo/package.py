@@ -79,7 +79,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         depends_on('petsc~double', when='~dp')
         depends_on('petsc~cuda', when='@:5.2.0')
         depends_on('slepc~arpack')
-        depends_on('slepc@:3.7.4', when='@:4.5.3')
+        #depends_on('slepc@:3.7.4', when='@:4.5.3')
         depends_on('slepc~cuda', when='@:5.2.0')
 
     # GPU variants and dependecies
@@ -120,8 +120,12 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     # depends_on('py-yambopy', when='+yambopy')
 
     # FFTW dependecies
-    depends_on('fftw-api@3~mpi', when='~mpi')
-    depends_on('fftw-api@3+mpi', when='+mpi')
+    depends_on('fftw-api@3')
+    with when("+mpi"):
+        depends_on('fftw +mpi', when='^[virtuals=fftw-api] fftw')
+    with when("~mpi"):
+        depends_on('fftw ~mpi', when='^[virtuals=fftw-api] fftw')
+
 
     # HDF5 dependecies
     variant('parallel_io', default=True, when='@4.4.0: +mpi', description='Activate the HDF5 parallel I/O')
@@ -138,13 +142,13 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
     # LIBXC dependecies
     depends_on('libxc@2.0.3:3.0.0~cuda', when='@:5.0.99')
-    depends_on('libxc@5.0:~cuda', when='@5.1.0:')
+    depends_on('libxc@5.0.0:6.2.2~cuda', when='@5.1.0:')
 
     with when("+openmp"):
-        depends_on("openblas threads=openmp", when="^openblas")
-        depends_on("intel-oneapi-mkl threads=openmp", when="^intel-oneapi-mkl")
-        depends_on("fftw +openmp", when="^fftw")
-        depends_on("petsc +openmp", when="^petsc")
+        depends_on("openblas threads=openmp", when="^[virtuals=lapack] openblas")
+        depends_on("intel-oneapi-mkl threads=openmp", when="^[virtuals=lapack] intel-oneapi-mkl")
+        depends_on("fftw +openmp", when="^[virtuals=fftw-api] fftw")
+        depends_on("petsc +openmp", when="^[virtuals=petsc] petsc")
 
     # IOTK external resource
     resource(
