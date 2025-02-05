@@ -449,7 +449,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
         # Other dependencies
         args.append('--with-libxc-path={0}'.format(spec['libxc'].prefix))
-        if '@5.3.0' in spec:
+        if '@5.3.0:' in spec:
             args.append('--with-devxlib-path={0}'.format(spec['devicexlib'].home))
 
         # GPU
@@ -457,7 +457,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         if '+openacc' in spec: args.append('--enable-openacc')
         if '+openmp5' in spec: args.append('--enable-openmp5')
         if '+cuda' in spec:
-            if '@5.3.0' in spec:
+            if '@5.3.0:' in spec:
                 args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
                 args.append('--with-cuda-runtime={0}.{1}'.format(*spec['cuda'].version))
                 # args.append('--with-cuda-path={0}'.format(spec['cuda'].prefix))
