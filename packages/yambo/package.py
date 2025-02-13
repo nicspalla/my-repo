@@ -34,7 +34,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     version('develop-maintenance', branch='maintenance-master')
     version('develop-gpu', branch='tech-gpu')
     version('develop-arm', branch='tech-arm', git="https://github.com/nicspalla/yambo")
-    version('5.3.0', sha256='47b7591b31f833f371f6538050ac27e66d7ddb6f82034cad0100a8f02b3d8072')
+    version('5.3.0', sha256='97b6867c28af6ea690bb02446745e817adcedf95bcd568f132ef3510abbb1cfe')
     version('5.2.4', sha256='7c3f2602389fc29a0d8570c2fe85fe3768d390cfcbb2d371e83e75c6c951d5fc')
     version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
     version('5.2.2', sha256='2ddd6356830ce9302e304b7627cff3aa973846cf893f91742b4390d0b53d63d4')
