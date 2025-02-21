@@ -44,7 +44,7 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('roctx', default=False, description='Enable ROCTX support', when='+rocm')
     variant('mkl', default=False, description='Enable MKL-GPU support')
     variant('cuda_rt', values=str, default='none', when='%nvhpc +cuda',
-            description='Specify the CUDA runtime version only if you want the secondary version of the NVHPC SDK.')
+            description='Specify the CUDA runtime version (e.g. "11.8") only if you want the secondary version installed with the NVHPC SDK.')
 
     depends_on("blas")
     # depends_on("lapack")
@@ -109,7 +109,8 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
         args.extend(self.enable_or_disable('cuda'))
         if '+cuda' in spec:
             args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
-            args.append('--with-cuda-runtime={0}.{1}'.format(*spec['cuda'].version))
+            if spec.variants['cuda_rt'].value != 'none':
+                args.append('--with-cuda-runtime={0}'.format(spec.variants['cuda_rt'].value))
             if '%nvhpc' not in spec:
                 args.append('--with-cuda-path={0}'.format(spec['cuda'].home))
             
