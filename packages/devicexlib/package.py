@@ -43,10 +43,11 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('nvtx', default=False, description='Enable NVTX support', when='+cuda')
     variant('roctx', default=False, description='Enable ROCTX support', when='+rocm')
     variant('mkl', default=False, description='Enable MKL-GPU support')
+    variant('cuda_rt', values=str, default='none', when='%nvhpc +cuda',
+            description='Specify the CUDA runtime version only if you want the secondary version of the NVHPC SDK.')
 
     depends_on("blas")
     # depends_on("lapack")
-    depends_on('cuda', when='+nvtx')
     depends_on('intel-oneapi-mkl', when='+mkl')
     conflicts('cuda_arch=none', when='+cuda', msg='CUDA architecture is required')
     conflicts('cuda_arch=none', when='+cuda-fortran', msg='CUDA architecture is required')
