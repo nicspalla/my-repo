@@ -476,3 +476,15 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     def install(self, spec, prefix):
         # 'install' target is not present
         install_tree('bin', prefix.bin)
+
+    def build(self, spec, prefix):
+        print(f"Using compiler: {spec.compiler.name} {spec.compiler.version}")
+        if spec.satisfies('%nvhpc') and spec.compiler.version >= Version('24.11') :
+            # Modify the config/setup file that was created by configure
+            config_file = join_path(self.stage.source_path, 'config', 'setup')
+            # Handle the -Mcuda=A,X pattern
+            filter_file( r'-Mcuda=([^,\s]+),([^,\s]+)', r'-cuda -gpu=\1,\2', config_file )
+            # Handle the -Mcudalib pattern
+            filter_file( r'-Mcudalib=([^,\s][^,\s]*(?:,[^,\s]+)*)', r'-cudalib=\1', config_file )
+        # Then proceed with the actual build
+        super(Yambo, self).build(spec, prefix)
