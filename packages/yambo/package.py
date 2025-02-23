@@ -315,7 +315,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
             env.set('MPIFC', 'mpifort')
         if '%nvhpc' in spec:
             env.set('FC', "nvfortran")
-            env.set('CPP', "cpp -E")
+            env.set('CPP', "cpp -E -P")
             env.set('FPP', "nvfortran -Mpreprocess -E")
             env.set('F90SUFFIX', ".f90")
             env.unset('CUDA_HOME')
