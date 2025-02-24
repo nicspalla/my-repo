@@ -51,6 +51,7 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     depends_on('intel-oneapi-mkl', when='+mkl')
     conflicts('cuda_arch=none', when='+cuda', msg='CUDA architecture is required')
     conflicts('cuda_arch=none', when='+cuda-fortran', msg='CUDA architecture is required')
+    conflicts('cuda_rt=none', when='@:0.8.5 +cuda', msg='CUDA runtime version is required')
 
     with when("+openmp"):
          depends_on("openblas threads=openmp", when="^openblas")

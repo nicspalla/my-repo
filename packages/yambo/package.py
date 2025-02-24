@@ -33,6 +33,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     version('develop-advanced', branch='advanced', git="https://github.com/yambo-code/yambo-devel")
     version('develop-maintenance', branch='maintenance-master')
     version('develop-gpu', branch='tech-gpu')
+    version('develop-fix', branch='fix-issue-190')
     version('develop-arm', branch='tech-arm', git="https://github.com/nicspalla/yambo")
     version('5.3.0', sha256='97b6867c28af6ea690bb02446745e817adcedf95bcd568f132ef3510abbb1cfe')
     version('5.2.4', sha256='7c3f2602389fc29a0d8570c2fe85fe3768d390cfcbb2d371e83e75c6c951d5fc')
@@ -83,6 +84,9 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         depends_on('slepc~cuda', when='@:5.2.0')
 
     # GPU variants and dependecies
+    variant('cuda_rt', values=str, default='none', when='%nvhpc +cuda',
+            description='Specify the CUDA runtime version (e.g. "11.8") only if you want the secondary version installed with the NVHPC SDK.')
+    conflicts('cuda_rt=none', when='@:5.2.99 +cuda', msg='CUDA runtime version is required')
     variant('openmp5', default=False, description='Build with OpenMP-GPU support')
     variant('openacc', default=False, description='Build with OpenACC')
     variant('cuda-fortran', default=False, description='Build with CUDA-Fortran')
@@ -457,7 +461,11 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         if '+openacc' in spec: args.append('--enable-openacc')
         if '+openmp5' in spec: args.append('--enable-openmp5')
         if '+cuda' in spec:
-            if '@5.3.0:' in spec:
+            if '@develop-fix' in spec:
+                args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
+                if spec.variants['cuda_rt'].value != 'none':
+                    args.append('--with-cuda-runtime={0}'.format(spec.variants['cuda_rt'].value))
+            elif '@5.3.0:' in spec:
                 args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
                 args.append('--with-cuda-runtime={0}.{1}'.format(*spec['cuda'].version))
                 # args.append('--with-cuda-path={0}'.format(spec['cuda'].prefix))
@@ -465,6 +473,8 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                 enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(*spec['cuda'].version)
                 enable_cuda += ',cc{0}'.format(*spec.variants['cuda_arch'].value)
                 args.append(enable_cuda)
+            if '%nvhpc' not in spec:
+                args.append('--with-cuda-path={0}'.format(spec['cuda'].home))
             if '+nvtx' in spec:
                 args.append('--enable-nvtx={0}'.format(spec['cuda'].home))
         if '+magma' in spec:
