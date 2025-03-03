@@ -33,8 +33,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     version('develop-advanced', branch='advanced', git="https://github.com/yambo-code/yambo-devel")
     version('develop-maintenance', branch='maintenance-master')
     version('develop-gpu', branch='tech-gpu')
-    version('develop-fix', branch='fix-issue-190')
-    version('develop-arm', branch='tech-arm', git="https://github.com/nicspalla/yambo")
+    version('develop-arm', branch='tech-arm')
     version('5.3.0', sha256='97b6867c28af6ea690bb02446745e817adcedf95bcd568f132ef3510abbb1cfe')
     version('5.2.4', sha256='7c3f2602389fc29a0d8570c2fe85fe3768d390cfcbb2d371e83e75c6c951d5fc')
     version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
@@ -59,6 +58,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
     patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='@:5.1.99 %gcc@12.0.0:')
+    patch('cuda_runtime.patch', sha256='bfd5ade95ef5ca9502c7ad1b375e4517fbf77a32bf97041fd580bb36304fd755', when='@5.3.0')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
@@ -105,10 +105,10 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('magma', default=False, description='Enable Magma support', when='+cuda %nvhpc')
     depends_on('magma+cuda', when='+magma')
     with when('@5.3.0:'):
-        depends_on('devicexlib~cuda-fortran~openacc~openmp5', when='~cuda-fortran~openacc~openmp5')
-        depends_on('devicexlib+openmp', when='+openmp')
-        depends_on('devicexlib+cuda-fortran+cuda', when='+cuda-fortran+cuda %nvhpc')
-        depends_on('devicexlib+openacc+cuda', when='+openacc+cuda')
+        depends_on('devicexlib@0.8.6: ~cuda-fortran~openacc~openmp5', when='~cuda-fortran~openacc~openmp5')
+        depends_on('devicexlib@0.8.6: +openmp', when='+openmp')
+        depends_on('devicexlib@0.8.6: +cuda-fortran+cuda', when='+cuda-fortran+cuda %nvhpc')
+        depends_on('devicexlib@0.8.6: +openacc+cuda', when='+openacc+cuda')
     
     # Other variants
     variant('dp', default=False, description='Enable double precision')
@@ -461,13 +461,10 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         if '+openacc' in spec: args.append('--enable-openacc')
         if '+openmp5' in spec: args.append('--enable-openmp5')
         if '+cuda' in spec:
-            if '@develop-fix' in spec:
+            if '@5.3.0:' in spec:
                 args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
                 if spec.variants['cuda_rt'].value != 'none':
                     args.append('--with-cuda-runtime={0}'.format(spec.variants['cuda_rt'].value))
-            elif '@5.3.0:' in spec:
-                args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
-                args.append('--with-cuda-runtime={0}.{1}'.format(*spec['cuda'].version))
                 # args.append('--with-cuda-path={0}'.format(spec['cuda'].prefix))
             else:
                 enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(*spec['cuda'].version)
