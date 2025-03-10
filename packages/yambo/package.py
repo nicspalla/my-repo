@@ -33,8 +33,8 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     version('develop-advanced', branch='advanced', git="https://github.com/yambo-code/yambo-devel")
     version('develop-maintenance', branch='maintenance-master')
     version('develop-gpu', branch='tech-gpu')
-    version('develop-arm', branch='tech-arm', git="https://github.com/nicspalla/yambo")
-    version('5.3.0', sha256='47b7591b31f833f371f6538050ac27e66d7ddb6f82034cad0100a8f02b3d8072')
+    version('develop-fj', branch='tech-arm')
+    version('5.3.0', sha256='97b6867c28af6ea690bb02446745e817adcedf95bcd568f132ef3510abbb1cfe')
     version('5.2.4', sha256='7c3f2602389fc29a0d8570c2fe85fe3768d390cfcbb2d371e83e75c6c951d5fc')
     version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
     version('5.2.2', sha256='2ddd6356830ce9302e304b7627cff3aa973846cf893f91742b4390d0b53d63d4')
@@ -309,10 +309,16 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
             env.set('MPIF77', 'mpif77')
             env.set('MPIFC', 'mpif90')
         if spec['mpi'].name == 'fujitsu-mpi':
-            env.set('MPICC', 'mpicc')
-            env.set('MPICXX', 'mpicxx')
-            env.set('MPIF77', 'mpifort')
-            env.set('MPIFC', 'mpifort')
+            if '%fj' in spec:
+                env.set('MPICC', 'mpifcc')
+                env.set('MPICXX', 'mpifcc')
+                env.set('MPIF77', 'mpifrt')
+                env.set('MPIFC', 'mpifrt')
+            else:
+                env.set('MPICC', 'mpicc')
+                env.set('MPICXX', 'mpicxx')
+                env.set('MPIF77', 'mpifort')
+                env.set('MPIFC', 'mpifort')
         if '%nvhpc' in spec:
             env.set('FC', "nvfortran")
             env.set('CPP', "cpp -E")
@@ -340,6 +346,13 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                 env.set('MPICC', 'mpiicx')
                 env.set('MPIF77', 'mpiifx')
                 env.set('MPIFC', 'mpiifx')
+        if '%fj' in spec:
+            env.set('CC', "fcc")
+            env.set('FC', "frt")
+            env.set('F90', "frt")
+            env.set('CPP', "gcc -E -P")
+            env.set('FPP', "gfortran -E -P -cpp")
+            env.set('FLIBS', "-lfjprofmpif -L/usr/lib/gcc/aarch64-redhat-linux/8 -L/opt/FJSVxtclanga/.common/MECA029/lib64 -lmpi_usempif08 -lmpi_usempi_ignore_tkr  -lmpi_mpifh -lmpi -lfjstring_internal -L/opt/FJSVxtclanga/tcsds-1.2.38/bin/../lib64 -lfj90i -lfj90fmt_sve -lfj90f -lfjsrcinfo -lfjprofcore -lfjprofomp -lmpg -L/usr/lib64 -L/opt/FJSVxos/mmm/lib64  -lm -lrt -lpthread -lelf -ldl")
 
     def configure_args(self):
         spec = self.spec
@@ -405,10 +418,16 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                 ])
         else:
             # BLAS/LAPACK
-            args.extend([
-                '--with-blas-libs={0}'.format(spec['blas'].libs),
-                '--with-lapack-libs={0}'.format(spec['lapack'].libs),
-            ])
+            if '^fujitsu-ssl2' in spec:
+                args.extend([
+                    '--with-blas-libs={1} {0}'.format(spec['blas'].libs, '-Kparallel -Kopenmp -Nfjomplib'),
+                    '--with-lapack-libs={1} {0}'.format(spec['lapack'].libs, '-Kparallel -Kopenmp -Nfjomplib'),
+                ])
+            else:
+                args.extend([
+                    '--with-blas-libs={0}'.format(spec['blas'].libs),
+                    '--with-lapack-libs={0}'.format(spec['lapack'].libs),
+                ])
             # FFT
             args.append('--with-fft-path={0}'.format(spec['fftw-api'].prefix))
 
@@ -421,6 +440,11 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                     '-lmkl_blacs_intelmpi_lp64'.format(env['MKLROOT']),
                     '--with-scalapack-libs=-L{0}/lib/intel64 '
                     '-lmkl_scalapack_lp64'.format(env['MKLROOT']),
+                ])
+            elif '^fujitsu-ssl2' in spec:
+                args.extend([
+                    '--with-blacs-libs={1} {0}'.format(spec['scalapack'].libs, '-Kparallel -Kopenmp -Nfjomplib'),
+                    '--with-scalapack-libs={1} {0}'.format(spec['scalapack'].libs, '-Kparallel -Kopenmp -Nfjomplib'),
                 ])
             else:
                 args.extend([
