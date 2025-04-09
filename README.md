@@ -10,7 +10,7 @@ please replace the string <repo_name> here below and following with a name usefu
 
 ## Requirements
 
-- spack version 0.16+
+- spack 
   - [spack system requirements](https://spack.readthedocs.io/en/latest/getting_started.html)
 
 ### Software suggested but not required
@@ -53,12 +53,12 @@ Here a list of commands that will lead to a good installation of Yambo starting 
 git clone https://github.com/nicspalla/my-repo.git $HOME/my-repo
 git clone https://github.com/spack/spack.git $HOME/spack
 cd $HOME/spack
-git checkout releases/v0.18
+git checkout releases/v0.22
 . $HOME/spack/share/spack/setup-env.sh 
 spack external find
 spack install gcc@11.2.0 && spack compiler add $(spack location -i gcc@11.2.0)
 printf "repos:\n  - $HOME/my-repo\n" > $HOME/.spack/repos.yaml
-spack install yambo %gcc@11.2.0 +mpi +openmp profile=time,memory
+spack install yambo %gcc@11.2.0 +mpi +openmp +time +memory
 ```
 
 Now you can load the Yambo package and check if it works:
@@ -69,14 +69,14 @@ yambo -h
 
 ### Installing on accelerated machines
 
-Here an example of command installation of Yambo supporting acceleration with CUDA-Fortran on a workstation with NVidia Titan V devices (cc70):
+Here an example of command installation of Yambo supporting acceleration with CUDA-Fortran on a cluster with NVidia A100 devices (cc80):
 ```
-spack install yambo@5.1.1+cuda-fortran+mpi+openmp+parallel_io+ph+rt+sc+nl cuda_arch=70 linalg=parallel,slepc %nvhpc
+spack install yambo@5.3.0 %nvhpc +mpi+openmp+parallel_io+scalapack+slepc+cuda+cuda-fortran cuda_arch=80 
 ```
 
-### Installing on MacOS
+### Installing on MacOS (x86)
 
 For MacOS users it is suggested to install Yambo with the GCC compiler, but using CMake compiled with the Clang compiler:
 ```
-spack install yambo@5.1.1%gcc@11.2.0 +mpi +openmp profile=memory,time ^cmake%apple-clang
+spack install yambo@5.3.0%gcc@11.2.0 +mpi +openmp +memory +time ^cmake%apple-clang
 ```
