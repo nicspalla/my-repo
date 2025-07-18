@@ -21,6 +21,7 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     maintainers = ['nicspalla']
 
     version('develop', branch='develop')
+    version("0.9.0", sha256="77c57a31381a69a2eb2a77138b131a553c96aff03ca934c88b8a6d8434b39460")
     version("0.8.6", sha256="36e6222bc59cf0ed7268cc3652a3661887109f7fe072cefe06884dcd6de2407d")
     version("0.8.5", sha256="498d5c6804e697123d382d9dd35dedeb4b64228704f84711877c842b851d37df")
     version("0.8.4", sha256="d1b1432300dfd4dfcb31703e873ad68f3b33b492c596d0b8c668ff38c2cc3b5e")
@@ -30,6 +31,8 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('openmp', default=False, description='Enable OpenMP support')
     variant('openmp5', default=False, description='Build with OpenMP-GPU support')
     variant('openacc', default=False, description='Build with OpenACC')
+    with when("@0.9.0: +openacc"):
+        variant('openacc-develop', default=False, description='Enable OpenACC DEBUG macro')
     variant('cuda-fortran', default=False, description='Build with CUDA-Fortran')
 
     # with when('+cuda-fortran'):
@@ -98,6 +101,8 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
             args.append('--enable-cuda-fortran')
         if '+openacc' in spec:
             args.append('--enable-openacc')
+        if '+openacc-debug' in spec:
+            args.append('--enable-openacc-debug')
         if '+openmp5' in spec:
             args.append('--enable-openmp5')
 

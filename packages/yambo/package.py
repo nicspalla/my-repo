@@ -30,10 +30,9 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
     maintainers = ['nicspalla']
 
-    version('develop-advanced', branch='advanced', git="https://github.com/yambo-code/yambo-devel")
-    version('develop-maintenance', branch='maintenance-master')
     version('develop-gpu', branch='tech-gpu')
     version('develop-arm', branch='tech-arm')
+    version('develop-master', branch='tech-master')
     version('5.3.0', sha256='97b6867c28af6ea690bb02446745e817adcedf95bcd568f132ef3510abbb1cfe')
     version('5.2.4', sha256='7c3f2602389fc29a0d8570c2fe85fe3768d390cfcbb2d371e83e75c6c951d5fc')
     version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
@@ -58,30 +57,70 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
     patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='@:5.1.99 %gcc@12.0.0:')
-    patch('cuda_runtime.patch', sha256='bfd5ade95ef5ca9502c7ad1b375e4517fbf77a32bf97041fd580bb36304fd755', when='@5.3.0')
+    patch('cuda_runtime.patch', sha256='bfd5ade95ef5ca9502c7ad1b375e4517fbf77a32bf97041fd580bb36304fd755', when='@5.3.0+cuda')
+    patch('timing.patch', sha256='e12b0da1038b7542222856c50dd483015b010678158d4f60eb0e2f5c0df60f13', when='@5.0.0:')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
-    variant('openmp', default=False, description='Enable OpenMP support')
-    depends_on('mpi', when='+mpi')
+    variant('openmp', default=True, description='Enable OpenMP support')
 
-    # Liear Algebra variants and dependencies
+    # Linear Algebra and Parallel I/O
+    variant('slepc', default=False, description='Activate support for linear algebra with SLEPc and PETSc')
+    with when('+mpi'):
+        variant('scalapack', default=False, description='Activate support for parallel linear algebra with SCALAPACK')
+        variant('parallel_io', default=True, when='@4.4.0:', description='Activate the HDF5 parallel I/O')
+
+    # Other variants
+    variant('dp', default=False, description='Enable double precision')
+    variant('time', default=False, description='Activate time profiling of specific sections')
+    variant('memory', default=False, description='Activate memory profiling of specific sections')
+    variant('ph', default=False, description='Compile Electron-phonon coupling project executables: yambo_ph ypp_ph')
+    variant('rt', default=False, description='Compile Real-time dynamics project executables: yambo_rt ypp_rt')
+    variant('sc', default=False, description='Compile Self-consistent (COHSEX, HF, DFT) project executables: yambo_sc ypp_sc')
+    variant('nl', default=False, description='Compile Non-linear optics project executables: yambo_nl ypp_nl')
+
+    with when('+mpi'):
+        depends_on('mpi')
+
+    # Linar Algebra
     depends_on('blas')
     depends_on('lapack')
-    variant('scalapack', default=False, description='Activate support for parallel linear algebra with SCALAPACK')
-    depends_on('scalapack', when='+scalapack')
-    conflicts('+scalapack', when='~mpi',
-              msg="Parallel linear algebra available only with +mpi")
-    variant('slepc', default=False, description='Activate support for linear algebra with SLEPc and PETSc')
+
+    with when('+scalapack'):
+        depends_on('scalapack')
+    conflicts('+scalapack', when='~mpi', msg="Parallel linear algebra available only with +mpi")
+
     with when('+slepc'):
         depends_on('petsc+complex~superlu-dist~hypre~metis')
         depends_on('petsc+mpi', when='+mpi')
+        depends_on('petsc~mpi', when='~mpi')
         depends_on('petsc+double', when='+dp')
         depends_on('petsc~double', when='~dp')
         depends_on('petsc~cuda', when='@:5.2.0')
         depends_on('slepc~arpack')
         #depends_on('slepc@:3.7.4', when='@:4.5.3')
         depends_on('slepc~cuda', when='@:5.2.0')
+
+    # FFTW dependecies
+    depends_on('fftw-api@3')
+    with when("+mpi"):
+        depends_on('fftw +mpi', when='^[virtuals=fftw-api] fftw')
+    with when("~mpi"):
+        depends_on('fftw ~mpi', when='^[virtuals=fftw-api] fftw')
+
+    # HDF5 and NetCDF dependecies
+    with when("+parallel_io"):
+        depends_on('hdf5+fortran+hl+mpi')
+        depends_on('netcdf-c+mpi')
+    with when("~parallel_io"):
+        depends_on('hdf5+fortran+hl~mpi')
+        depends_on('netcdf-c~mpi')
+    conflicts('hdf5+mpi', when='@:4.4.0', msg="Parallel I/O available from version 4.4.1")
+    depends_on('netcdf-fortran')
+
+    # LIBXC dependecies
+    depends_on('libxc@2.0.3:3.0.0~cuda', when='@:5.0.99')
+    depends_on('libxc@5.0.0:6.2.2~cuda', when='@5.1.0:')
 
     # GPU variants and dependecies
     variant('cuda_rt', values=str, default='none', when='%nvhpc +cuda',
@@ -104,49 +143,17 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('nvtx', default=False, description='Enable NVTX support', when='+cuda %nvhpc')
     variant('magma', default=False, description='Enable Magma support', when='+cuda %nvhpc')
     depends_on('magma+cuda', when='+magma')
+
+    # DeviceXlib
     with when('@5.3.0:'):
         depends_on('devicexlib@0.8.6: ~cuda-fortran~openacc~openmp5', when='~cuda-fortran~openacc~openmp5')
         depends_on('devicexlib@0.8.6: +openmp', when='+openmp')
         depends_on('devicexlib@0.8.6: +cuda-fortran+cuda', when='+cuda-fortran+cuda %nvhpc')
         depends_on('devicexlib@0.8.6: +openacc+cuda', when='+openacc+cuda')
     
-    # Other variants
-    variant('dp', default=False, description='Enable double precision')
-    variant('time', default=False, description='Activate time profiling of specific sections')
-    variant('memory', default=False, description='Activate memory profiling of specific sections')
-    variant('ph', default=False, description='Compile Electron-phonon coupling project executables: yambo_ph ypp_ph')
-    variant('rt', default=False, description='Compile Real-time dynamics project executables: yambo_rt ypp_rt')
-    variant('sc', default=False, description='Compile Self-consistent (COHSEX, HF, DFT) project executables: yambo_sc ypp_sc')
-    variant('nl', default=False, description='Compile Non-linear optics project executables: yambo_nl ypp_nl')
-
     # Yambopy
     # variant('yambopy', default=False, description='Install Yambopy package')
     # depends_on('py-yambopy', when='+yambopy')
-
-    # FFTW dependecies
-    depends_on('fftw-api@3')
-    with when("+mpi"):
-        depends_on('fftw +mpi', when='^[virtuals=fftw-api] fftw')
-    with when("~mpi"):
-        depends_on('fftw ~mpi', when='^[virtuals=fftw-api] fftw')
-
-
-    # HDF5 dependecies
-    variant('parallel_io', default=True, when='@4.4.0: +mpi', description='Activate the HDF5 parallel I/O')
-    depends_on('hdf5+fortran+hl~mpi', when='@:4.4.0')
-    depends_on('hdf5+fortran+hl~mpi', when='~parallel_io')
-    depends_on('hdf5+fortran+hl+mpi', when='+parallel_io')
-    depends_on('hdf5+fortran+hl~mpi', when='~mpi')
-
-    # NETCDF dependecies
-    depends_on('netcdf-c~mpi', when='~parallel_io')
-    depends_on('netcdf-c+mpi', when='+parallel_io')
-    depends_on('netcdf-c~mpi', when='~mpi')
-    depends_on('netcdf-fortran')
-
-    # LIBXC dependecies
-    depends_on('libxc@2.0.3:3.0.0~cuda', when='@:5.0.99')
-    depends_on('libxc@5.0.0:6.2.2~cuda', when='@5.1.0:')
 
     with when("+openmp"):
         depends_on("openblas threads=openmp", when="^[virtuals=lapack] openblas")
@@ -212,7 +219,16 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         when='@5.2.4'
     )
 
-    sanity_check_is_file = ["bin/yambo", "bin/ypp", "bin/a2y", "bin/c2y", "bin/p2y"]
+    sanity_check_projects = []
+    #with when('+ph'):
+    #    sanity_check_projects += ["bin/yambo_ph", "bin/ypp_ph"]
+    #with when('+rt'):
+    #    sanity_check_projects += ["bin/yambo_rt", "bin/ypp_rt"]
+    #with when('+sc'):
+    #    sanity_check_projects += ["bin/yambo_sc", "bin/ypp_sc"]
+    #with when('+nl'):
+    #    sanity_check_projects += ["bin/yambo_nl", "bin/ypp_nl"]
+    sanity_check_is_file = ["bin/yambo", "bin/ypp", "bin/a2y", "bin/c2y", "bin/p2y"] + sanity_check_projects
 
     @property
     def build_targets(self):
@@ -341,9 +357,14 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
             env.set('FPP', "ifx -E -free -P")
             env.set('CPP', "icx -E -ansi")
             if 'intel' in spec['mpi'].name:
-                env.set('MPICC', 'mpiicx')
-                env.set('MPIF77', 'mpiifx')
-                env.set('MPIFC', 'mpiifx')
+                if '^intel-oneapi-mpi@2021.10.0' in spec:
+                    env.set('MPICC', 'mpiicc -cc=icx')
+                    env.set('MPIF77', 'mpiifort -fc=ifx')
+                    env.set('MPIFC', 'mpiifort -fc=ifx')
+                else:
+                    env.set('MPICC', 'mpiicx')
+                    env.set('MPIF77', 'mpiifx')
+                    env.set('MPIFC', 'mpiifx')
 
     def configure_args(self):
         spec = self.spec
