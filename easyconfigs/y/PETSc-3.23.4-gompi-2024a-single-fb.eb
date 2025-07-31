@@ -1,0 +1,45 @@
+
+easyblock = 'ConfigureMake'
+
+name = 'PETSc'
+version = '3.23.4'
+versionsuffix = '-single-fb'
+
+homepage = 'https://www.mcs.anl.gov/petsc'
+description = """PETSc, pronounced PET-see (the S is silent), is a suite of data structures and routines for the
+ scalable (parallel) solution of scientific applications modeled by partial differential equations."""
+
+toolchain = {'name': 'gompi', 'version': '2024a'}
+toolchainopts = {'openmp': True, 'usempi': True, 'pic': True}
+
+source_urls = [
+    'https://gitlab.com/petsc/petsc/-/archive/v%(version)s/',
+]
+sources = ['%(namelower)s-v%(version)s.tar.gz']
+checksums = ['ab95d363e10774fd16cb71767f2ebd6eac4d25c2110c2d4a8451d791a0094326']
+
+builddependencies = [('CMake', '3.29.3')]
+
+dependencies = [
+    ('Python', '3.12.3'),
+    ('FlexiBLAS', '3.4.4'),
+]
+
+configopts = ' --LIBS="$LIBS -lrt" '
+configopts += '--with-scalar-type="complex" '
+configopts += '--with-precision="single" '
+configopts += '--with-blas-lapack-lib="$EBROOTFLEXIBLAS/lib/libflexiblas.a -lgfortran" '
+
+shared_libs = 1
+
+# only required when building PETSc in a SLURM job environment
+# configopts += '--with-batch=1 --known-mpi-shared-libraries=1 --known-64-bit-blas-indices=0 '
+# prebuildopts = "srun ./conftest-arch-linux2-c-opt && ./reconfigure-arch-linux2-c-opt.py && "
+
+sanity_check_paths = {
+    'files': [],
+    'dirs': ['lib', 'lib64', 'include']
+}
+
+
+moduleclass = 'numlib'
