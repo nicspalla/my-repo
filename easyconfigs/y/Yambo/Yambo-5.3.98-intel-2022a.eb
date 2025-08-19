@@ -35,7 +35,7 @@ checksums = [
     {'Yambo-5.3_fix-timing.patch': 'e12b0da1038b7542222856c50dd483015b010678158d4f60eb0e2f5c0df60f13'},
 ]
 dependencies = [
-    ('HDF5', '1.13.1'),
+    ('HDF5', '1.12.2'),
     ('netCDF', '4.9.0'),
     ('netCDF-Fortran', '4.6.0'),
     ('PETSc', '3.20.3', '-single'),
