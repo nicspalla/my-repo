@@ -47,7 +47,7 @@ dependencies = [
 with_configure = True
 
 preconfigopts = ' && '.join([
-    'export CPP="gcc -E"',
+    'export CPP="gcc -E -P"',
     'export CPPFLAGS="-P"',
     'export FPP="gfortran -E -P -cpp"',
     'export FCFLAGS="-O3 -g -mtune=native -fno-lto -fopenmp"',
