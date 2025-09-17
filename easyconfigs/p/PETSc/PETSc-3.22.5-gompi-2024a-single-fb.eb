@@ -1,3 +1,10 @@
+##
+# Author: Nicola Spallanzani <nicola.spallanzani@cnr.it>
+#
+# This recipe was obtained from PETSc-3.20.3-foss-2023a.eb
+#      Author:    Robert Mijakovic <robert.mijakovic@lxp.lu>
+#      Author:    Jasper Grimm (UoY)
+##
 
 easyblock = 'ConfigureMake'
 

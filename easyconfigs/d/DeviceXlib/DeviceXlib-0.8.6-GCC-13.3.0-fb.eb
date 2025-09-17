@@ -1,3 +1,7 @@
+##
+# Author: Nicola Spallanzani <nicola.spallanzani@cnr.it>
+##
+
 easyblock = 'ConfigureMake'
 
 name = 'DeviceXlib'

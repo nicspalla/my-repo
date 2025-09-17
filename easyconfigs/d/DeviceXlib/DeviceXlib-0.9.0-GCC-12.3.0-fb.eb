@@ -16,7 +16,7 @@ description = """
 DeviceXlib is a library that wraps device-oriented routines and utilities, such as device data allocation, host-device data transfers. deviceXlib supports CUDA language, together with OpenACC and OpenMP programming paradigms. deviceXlib wraps a subset of functions from Nvidia cuBLAS, Intel oneMKL BLAS and AMD rocBLAS libraries.
 """
 
-toolchain = {'name': 'GCC', 'version': '13.3.0'}
+toolchain = {'name': 'GCC', 'version': '12.3.0'}
 toolchainopts = {'openmp': True}
 
 source_urls = ['https://gitlab.com/max-centre/components/devicexlib/-/archive/%(version)s/']
@@ -24,7 +24,7 @@ sources = ['devicexlib-%(version)s.tar.gz']
 checksums = ['77c57a31381a69a2eb2a77138b131a553c96aff03ca934c88b8a6d8434b39460']
 
 dependencies = [
-    ('FlexiBLAS', '3.4.4'),
+    ('FlexiBLAS', '3.3.1'),
 ]
 
 preconfigopts = ' && '.join([

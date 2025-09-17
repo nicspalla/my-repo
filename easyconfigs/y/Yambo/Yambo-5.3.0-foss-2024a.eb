@@ -1,3 +1,7 @@
+##
+# Author: Nicola Spallanzani <nicola.spallanzani@cnr.it>
+##
+
 easyblock = 'MakeCp'
 
 name = 'Yambo'
@@ -76,7 +80,7 @@ configopts += '--enable-par-linalg --enable-slepc-linalg '
 prebuildopts = 'unset LIBS && '
 prebuildopts += "export SHELL='sh -x' && "
 
-buildopts = 'core'
+buildopts = 'all'
 
 files_to_copy = [
     (['bin/*'], 'bin'),
