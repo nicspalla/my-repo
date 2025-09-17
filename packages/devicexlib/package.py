@@ -91,7 +91,7 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     
     def configure_args(self):
         spec = self.spec
-        args = ['--enable-cuda-env-check=no']
+        args = ['--enable-cuda-env-check=no --enable-parallel=no']
 
         # OpenMP
         args.extend(self.enable_or_disable('openmp'))
