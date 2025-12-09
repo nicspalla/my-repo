@@ -49,7 +49,8 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('nvtx', default=False, description='Enable NVTX support', when='+cuda')
     variant('roctx', default=False, description='Enable ROCTX support', when='+rocm')
     variant('mkl', default=False, description='Enable MKL-GPU support')
-    variant('cuda_rt', values=str, default='none', when='%nvhpc +cuda',
+    with when('+cuda'):
+        variant('cuda_rt', values=str, default='none', when='%nvhpc',
             description='Specify the CUDA runtime version (e.g. "11.8") only if you want the secondary version installed with the NVHPC SDK.')
 
     depends_on("blas")

@@ -127,8 +127,12 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     depends_on('libxc@5.0.0:6.2.2~cuda', when='@5.1.0:')
 
     # GPU variants and dependecies
-    variant('cuda_rt', values=str, default='none', when='%nvhpc +cuda',
+    with when('+cuda'):
+        variant('cuda_rt', values=str, default='none', when='%nvhpc',
             description='Specify the CUDA runtime version (e.g. "11.8") only if you want the secondary version installed with the NVHPC SDK.')
+        variant('nvtx', default=False, description='Enable NVTX support', when='+cuda %nvhpc')
+        variant('magma', default=False, description='Enable Magma support', when='+cuda %nvhpc')
+        depends_on('magma+cuda', when='+magma')
     conflicts('cuda_rt=none', when='@:5.2.99 +cuda', msg='CUDA runtime version is required')
     variant('openmp5', default=False, description='Build with OpenMP-GPU support')
     variant('openacc', default=False, description='Build with OpenACC')
@@ -144,16 +148,13 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                   msg="CUDA-Fortran available only with NV or PGI compilers")
         conflicts('%oneapi',
                   msg="CUDA-Fortran available only with NV or PGI compilers")
-    variant('nvtx', default=False, description='Enable NVTX support', when='+cuda %nvhpc')
-    variant('magma', default=False, description='Enable Magma support', when='+cuda %nvhpc')
-    depends_on('magma+cuda', when='+magma')
 
     # DeviceXlib
     with when('@5.3.0:'):
         depends_on('devicexlib@0.8.6: ~cuda-fortran~openacc~openmp5', when='~cuda-fortran~openacc~openmp5')
         depends_on('devicexlib@0.8.6: +openmp', when='+openmp')
-        depends_on('devicexlib@0.8.6: +cuda-fortran+cuda', when='+cuda-fortran+cuda %nvhpc')
-        depends_on('devicexlib@0.8.6: +openacc+cuda', when='+openacc+cuda')
+        depends_on('devicexlib@0.8.6: +cuda-fortran+cuda', when='+cuda-fortran+cuda')
+        depends_on('devicexlib@0.9.0: +openacc+cuda', when='+openacc+cuda')
     
     # Yambopy
     # variant('yambopy', default=False, description='Install Yambopy package')
