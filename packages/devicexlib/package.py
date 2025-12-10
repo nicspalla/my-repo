@@ -30,6 +30,9 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     version("0.8.3", sha256="3d2d4264df8c57da2791b0f94def52d789d67c6fe7ad5960f96c96dfc6c25cb2")
     version("0.8.2", sha256="c184de73f424e9437e352eb0e35716514348a7cd88ebac3ad7a52c66c4e4ba9c")
 
+    depends_on("c", type="build")
+    depends_on("fortran", type="build")
+    
     variant('openmp', default=False, description='Enable OpenMP support')
     variant('openmp5', default=False, description='Build with OpenMP-GPU support')
     variant('openacc', default=False, description='Build with OpenACC')
