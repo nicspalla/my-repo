@@ -164,7 +164,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     # depends_on('py-yambopy', when='+yambopy')
 
     with when("+openmp"):
-        depends_on("openblas threads=openmp", when="^[virtuals=lapack] openblas")
+        #depends_on("openblas threads=openmp", when="^[virtuals=lapack] openblas")
         depends_on("intel-oneapi-mkl threads=openmp", when="^[virtuals=lapack] intel-oneapi-mkl")
         depends_on("fftw +openmp", when="^[virtuals=fftw-api] fftw")
         depends_on("petsc +openmp", when="^[virtuals=petsc] petsc")

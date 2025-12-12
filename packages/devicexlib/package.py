@@ -30,6 +30,8 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     version("0.8.3", sha256="3d2d4264df8c57da2791b0f94def52d789d67c6fe7ad5960f96c96dfc6c25cb2")
     version("0.8.2", sha256="c184de73f424e9437e352eb0e35716514348a7cd88ebac3ad7a52c66c4e4ba9c")
 
+    patch_config_files = False
+    
     depends_on("c", type="build")
     depends_on("fortran", type="build")
     
@@ -63,8 +65,8 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     conflicts('cuda_arch=none', when='+cuda-fortran', msg='CUDA architecture is required')
     conflicts('cuda_rt=none', when='@:0.8.5 +cuda', msg='CUDA runtime version is required')
 
-    with when("+openmp"):
-         depends_on("openblas threads=openmp", when="^openblas")
+    #with when("+openmp"):
+    #     depends_on("openblas threads=openmp", when="^openblas")
 
     def enable_or_disable_openmp(self, activated):
         return '--enable-openmp' if activated else '--disable-openmp'
@@ -80,6 +82,7 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
 
     def setup_build_environment(self, env):
         spec = self.spec
+        spec = self.spec
         if '%nvhpc' in spec:
             env.set('CC', "nvc")
             env.set('FC', "nvfortran")
@@ -87,17 +90,20 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
             env.set('CPP', "cpp -E")
             env.set('FPP', "nvfortran -Mpreprocess -E")
             env.set('F90SUFFIX', ".f90")
-        if '%gcc' in spec:
+        if '%c,fortran=gcc' in spec:
             env.set('CC', "gcc")
             env.set('FC', "gfortran")
             env.set('F90', "gfortran")
             env.set('CPP', "gcc -E -P")
             env.set('FPP', "gfortran -E -P")
             env.set('F90SUFFIX', ".f90")
+            env.set('MPICC', 'gcc')
+            env.set('MPIF77', 'gfortran')
+            env.set('MPIF90', 'gfortran')
     
     def configure_args(self):
         spec = self.spec
-        args = ['--enable-cuda-env-check=no --enable-parallel=no']
+        args = ['--enable-cuda-env-check=no', '--enable-parallel=no']
 
         # OpenMP
         args.extend(self.enable_or_disable('openmp'))
