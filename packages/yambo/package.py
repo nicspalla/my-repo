@@ -62,7 +62,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
     patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='@:5.1.99 %gcc@12.0.0:')
     patch('cuda_runtime.patch', sha256='bfd5ade95ef5ca9502c7ad1b375e4517fbf77a32bf97041fd580bb36304fd755', when='@5.3.0+cuda')
-    patch('timing.patch', sha256='e12b0da1038b7542222856c50dd483015b010678158d4f60eb0e2f5c0df60f13', when='@5.0.0:+time')
+    #patch('timing.patch', sha256='e12b0da1038b7542222856c50dd483015b010678158d4f60eb0e2f5c0df60f13', when='@5.0.0:+time')
 
     depends_on("c", type="build")
     depends_on("fortran", type="build")
@@ -309,14 +309,24 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
     @run_before('configure')
     def filter_oneapi(self):
-        # fix oneapi ifx issues
         spec = self.spec
+        # fix oneapi ifx issues
         if '%oneapi' in spec and '@5.0.0:5.2.99' in spec:
             filter_file('\*ifort\*', '*ifx*', 'configure')
             filter_file('2021', '2023', 'configure')
             filter_file('FC="\$\(fc\)"', 'FC=mpiifort', 'lib/iotk/Makefile.loc')
             filter_file('#include \<stdlib.h\>', '#if defined _ypp || defined _a2y || defined _p2y || defined _c2y || defined _e2y || defined _eph2y\n #include <yambo_driver.h>\n#endif', 'lib/yambo/Ydriver/src/main/options_maker.c')
 
+    @run_before('configure')
+    def filter_time(self):
+        spec = self.spec
+        # To always have the times written in seconds in the report, useful for benchmarking
+        if '+time' in spec and '@5.0.0:' in spec:
+            filter_file('total_time\(i_c\)\<600\.', 'total_time(i_c)<604800.', 'src/timing/TIMING_clock_write.F')
+            filter_file("ch='            \[Time-Profile\]: '//trim\(time_string\(total_time\)\)",
+                        "write (ch,'(a,f11.4,a)') '            [Time-Profile]: ',total_time,'s'",
+                        'src/modules/mod_timing.F')
+    
     def enable_or_disable_time(self, activated):
         return '--enable-time-profile' if activated else '--disable-time-profile'
 
@@ -404,9 +414,9 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
         # MKL
         mkl_lines = {
-            'intel': '-lmkl_gf_lp64 -lmkl_sequential -lmkl_core',
+            'intel': '-lmkl_intel_lp64 -lmkl_sequential -lmkl_core',
             'intel_thr': '-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5',
-            'oneapi': '-lmkl_gf_lp64 -lmkl_sequential -lmkl_core',
+            'oneapi': '-lmkl_intel_lp64 -lmkl_sequential -lmkl_core',
             'oneapi_thr': '-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5',
             'gcc': '-Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_sequential -lmkl_core',
             'gcc_thr': '-lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core -lgomp',
@@ -414,9 +424,11 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
             'nvhpc_thr': '-lmkl_intel_lp64 -lmkl_pgi_thread -lmkl_core -pgf90libs -mp',
         }
         mkl_line=''
-        if 'mkl' in spec:
+        if 'mkl' in spec or 'intel-oneapi-mkl' in spec:
             mkl_line = "-L{0}/lib/intel64 ".format(env['MKLROOT'])
-            if '%intel' in spec or '%oneapi' in spec:
+            if '%intel-oneapi-compilers' in spec or '%oneapi' in spec:
+                comp = "oneapi"
+            elif '%intel' in spec:
                 comp = "intel"
             elif '%gcc' in spec:
                 comp = "gnu"
@@ -428,13 +440,12 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
             mkl_line += ' -lpthread -lm -ldl'
 
             # BLAS/LAPACK
-            args.append(
-                '--with-blas-libs={0} --with-lapack-libs={0}'.format(mkl_line)
-                )
+            args.append('--with-blas-libs={0}'.format(mkl_line))
+            args.append('--with-lapack-libs={0}'.format(mkl_line))
             # FFT
             args.extend([
                 '--with-fft-libs={0}'.format(mkl_line),
-                '--with-fft-includedir={0}'.format(env['MKLROOT'])
+                '--with-fft-includedir={0}/include/fftw'.format(env['MKLROOT'])
                 ])
         else:
             # BLAS/LAPACK
@@ -448,7 +459,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         # ScaLAPACK
         if '+scalapack' in spec:
             args.append('--enable-par-linalg')
-            if 'mkl' in spec and 'intel' in spec['mpi'].name and '^netlib-scalapack' not in spec:
+            if ('mkl' in spec or 'intel-oneapi-mkl' in spec) and 'netlib-scalapack' not in spec:
                 args.extend([
                     '--with-blacs-libs=-L{0}/lib/intel64 '
                     '-lmkl_blacs_intelmpi_lp64'.format(env['MKLROOT']),
