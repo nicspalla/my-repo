@@ -257,30 +257,32 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     @run_before('configure')
     def filter_iotk(self):
         # block iotk download
-        filter_file('; \$\(getsrc\)', ' ', 'lib/archive/Makefile.loc')
+        filter_file('; $(getsrc)', ' ', 'lib/archive/Makefile.loc', string=True)
         # filter_file('783147', '962173', 'lib/archive/Makefile.loc', when='@:4.5.0')
         with when('@:5.0.99'):
-            filter_file('\( cd \.\./archive ;', r'#( cd ../archive ;', 'lib/iotk/Makefile.loc')
-            filter_file('; \$\(make\) \$\(TARBALL\) ; fi \)', r'; #$(make) $(TARBALL) ; fi )', 'lib/iotk/Makefile.loc')
+            filter_file('( cd ../archive ;', r'#( cd ../archive ;', 'lib/iotk/Makefile.loc', string=True)
+            filter_file('; $(make) $(TARBALL) ; fi )', r'; #$(make) $(TARBALL) ; fi )', 'lib/iotk/Makefile.loc', string=True)
             filter_file('gunzip', r'#gunzip', 'lib/iotk/Makefile.loc')
         with when('@5.1.1:'):
             # set link for iotk lib dir and block tarball uncompress
             filter_file('! test -d iotk;', ' test -d iotk;', 'lib/iotk/Makefile.loc')
-            filter_file('@\$\(uncompress\)', 'touch uncompress.stamp', 'lib/iotk/Makefile.loc')
+            filter_file('@$(uncompress)', 'touch uncompress.stamp', 'lib/iotk/Makefile.loc', string=True)
 
     @run_before('configure')
     def filter_ydriver(self):
         spec = self.spec
         if '@5.1.0:5.1.99' in spec:
             # solve issue for parallel compilation
-            filter_file('\$\(MAKE\) \$\(MAKEFLAGS\) -f Makefile.loc', 
+            filter_file('$(MAKE) $(MAKEFLAGS) -f Makefile.loc', 
                         r'$(MAKE) -f Makefile.loc $(MAKEFLAGS)', 
-                        'config/mk/global/functions/get_libraries.mk')
+                        'config/mk/global/functions/get_libraries.mk',
+                        string=True)
             # block Ydriver download
-            filter_file('; \$\(getsrc_git\); \$\(call link_it,"yambo"\)', ' ', 'lib/archive/Makefile.loc')
+            filter_file('; $(getsrc_git); $(call link_it,"yambo")', ' ', 'lib/archive/Makefile.loc', string=True)
         if '@5.2.0:5.2.99' in spec:
             # block Ydriver download
-            filter_file('; \$\(call getsrc_git,"Ydriver"\); \$\(call copy_driver,"Ydriver"\)', ' ', 'lib/archive/Makefile.loc')
+            filter_file('; $(call getsrc_git,"Ydriver"); $(call copy_driver,"Ydriver")',
+                        ' ', 'lib/archive/Makefile.loc', string=True)
 
     @run_before('configure')
     def filter_configure(self):
@@ -298,34 +300,48 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         filter_file('.+try_hdf5_incdir=..h5pfc -show .+', '#', 'configure')
         filter_file('.+try_HDF5_LIBS=..h5fc -show .+', '#', 'configure')
         filter_file('.+try_hdf5_incdir=..h5fc -show .+', '#', 'configure')
-        if '@5.1.2:' in spec:
-            # fix petsc linking issue
-            filter_file('libs="-lint_modules \$libs \$llocal \$lPLA \$lIO \$lextlibs -lm"', 
+
+    @run_before('configure')
+    def filter_linking_issue(self):
+        # fix linking issues with intel-oneapi-compilers
+        spec = self.spec
+        if '@5.1.2:' in spec and '%intel-oneapi-compilers' in spec:
+            filter_file('libs="-lint_modules $libs $llocal $lPLA $lIO $lextlibs -lm"', 
                         r'libs="-lint_modules $libs $llocal $lSL $lPLA $lIO $lextlibs -lm"', 
-                        'sbin/compilation/libraries.sh')
-            filter_file('libs="\$libs \$llocal \$lPLA \$lIO \$lextlibs -lm"', 
-                        r'libs="$libs $llocal $lSL $lPLA $lIO $lextlibs -lm"', 
-                        'sbin/compilation/libraries.sh')
+                        'sbin/compilation/libraries.sh',
+                        string=True)
+            filter_file('$libs $llocal', 
+                        r'-Wl,--start-group $libs $llocal', 
+                        'sbin/compilation/libraries.sh',
+                        string=True)
+            filter_file('$lextlibs', 
+                        r'$lextlibs -Wl,--end-group', 
+                        'sbin/compilation/libraries.sh',
+                        string=True)
+            filter_file('libs=" "', 'libs=" -l_Y_tddft "', 'sbin/compilation/libraries.sh', string=True)
 
     @run_before('configure')
     def filter_oneapi(self):
         spec = self.spec
         # fix oneapi ifx issues
-        if '%oneapi' in spec and '@5.0.0:5.2.99' in spec:
-            filter_file('\*ifort\*', '*ifx*', 'configure')
+        if ('%oneapi' in spec or '%intel-oneapi-compilers' in spec) and '@5.0.0:5.2.99' in spec:
+            filter_file('*ifort*', '*ifx*', 'configure', string=True)
             filter_file('2021', '2023', 'configure')
-            filter_file('FC="\$\(fc\)"', 'FC=mpiifort', 'lib/iotk/Makefile.loc')
-            filter_file('#include \<stdlib.h\>', '#if defined _ypp || defined _a2y || defined _p2y || defined _c2y || defined _e2y || defined _eph2y\n #include <yambo_driver.h>\n#endif', 'lib/yambo/Ydriver/src/main/options_maker.c')
+            filter_file('FC="$(fc)"', 'FC=mpiifort', 'lib/iotk/Makefile.loc', string=True)
+            filter_file('#include <stdlib.h>',
+                        '#if defined _ypp || defined _a2y || defined _p2y || defined _c2y || defined _e2y || defined _eph2y\n #include <yambo_driver.h>\n#endif',
+                        'lib/yambo/Ydriver/src/main/options_maker.c',
+                        string=True)
 
     @run_before('configure')
     def filter_time(self):
         spec = self.spec
         # To always have the times written in seconds in the report, useful for benchmarking
         if '+time' in spec and '@5.0.0:' in spec:
-            filter_file('total_time\(i_c\)\<600\.', 'total_time(i_c)<604800.', 'src/timing/TIMING_clock_write.F')
-            filter_file("ch='            \[Time-Profile\]: '//trim\(time_string\(total_time\)\)",
+            filter_file('total_time(i_c)<600.', 'total_time(i_c)<604800.', 'src/timing/TIMING_clock_write.F', string=True)
+            filter_file("ch='            [Time-Profile]: '//trim(time_string(total_time))",
                         "write (ch,'(a,f11.4,a)') '            [Time-Profile]: ',total_time,'s'",
-                        'src/modules/mod_timing.F')
+                        'src/modules/mod_timing.F', string=True)
     
     def enable_or_disable_time(self, activated):
         return '--enable-time-profile' if activated else '--disable-time-profile'
