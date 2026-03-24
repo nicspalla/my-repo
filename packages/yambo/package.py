@@ -61,7 +61,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
     patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='@:5.1.99 %gcc@12.0.0:')
     patch('cuda_runtime.patch', sha256='bfd5ade95ef5ca9502c7ad1b375e4517fbf77a32bf97041fd580bb36304fd755', when='@5.3.0+cuda')
-    patch('timing.patch', sha256='e12b0da1038b7542222856c50dd483015b010678158d4f60eb0e2f5c0df60f13', when='@5.0.0:+time')
+    patch('timing.patch', sha256='e12b0da1038b7542222856c50dd483015b010678158d4f60eb0e2f5c0df60f13', when='@5.0.0:5.3.99+time')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')

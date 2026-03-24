@@ -21,6 +21,7 @@ class Devicexlib(AutotoolsPackage,CudaPackage,ROCmPackage):
     maintainers = ['nicspalla']
 
     version('develop', branch='develop')
+    version("0.9.1", sha256="900fe8b0849d451e7c541d00a1b92c723e0969bae47ebcabd295e14ebcc17d1e")
     version("0.9.0", sha256="77c57a31381a69a2eb2a77138b131a553c96aff03ca934c88b8a6d8434b39460")
     version("0.8.6", sha256="36e6222bc59cf0ed7268cc3652a3661887109f7fe072cefe06884dcd6de2407d")
     version("0.8.5", sha256="498d5c6804e697123d382d9dd35dedeb4b64228704f84711877c842b851d37df")
