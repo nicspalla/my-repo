@@ -62,10 +62,10 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
     patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='@:5.1.99 %gcc@12.0.0:')
     patch('cuda_runtime.patch', sha256='bfd5ade95ef5ca9502c7ad1b375e4517fbf77a32bf97041fd580bb36304fd755', when='@5.3.0+cuda')
-    #patch('timing.patch', sha256='e12b0da1038b7542222856c50dd483015b010678158d4f60eb0e2f5c0df60f13', when='@5.0.0:+time')
 
     depends_on("c", type="build")
     depends_on("fortran", type="build")
+    depends_on("tar", type="build")
     
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
@@ -104,8 +104,9 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         depends_on('petsc+double', when='+dp')
         depends_on('petsc~double', when='~dp')
         depends_on('petsc~cuda', when='@:5.2.0')
+        depends_on('petsc@:3.20.5', when='@:5.2.99')
+        depends_on('petsc@:3.22.2', when='@:5.3.0')
         depends_on('slepc~arpack')
-        #depends_on('slepc@:3.7.4', when='@:4.5.3')
         depends_on('slepc~cuda', when='@:5.2.0')
 
     # FFTW dependecies
@@ -122,6 +123,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     with when("~parallel_io"):
         depends_on('hdf5+fortran+hl~mpi')
         depends_on('netcdf-c~mpi')
+    depends_on('hdf5@:1.12.3', when='@:5.2.99')
     conflicts('hdf5+mpi', when='@:4.4.0', msg="Parallel I/O available from version 4.4.1")
     depends_on('netcdf-fortran')
 
@@ -174,7 +176,8 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         name='iotk',
         url='https://github.com/yambo-code/yambo-libraries/raw/master/external/iotk-y1.2.2.tar.gz',
         sha256='64af6a4b98f3b62fcec603e4e1b00ef994f95a0efa53ab6593ebcfe6de1739ef',
-        destination='lib/iotk'
+        placement={'iotk-y1.2.2.tar.gz': 'lib/archive/iotk-y1.2.2.tar.gz'},
+        expand=False
     )
 
     # Yambo Driver external resource
@@ -182,49 +185,33 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         name='Ydriver',
         url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-0.0.2.tar.gz',
         sha256='63984c3eb2d28320b320f1d9b3a2c1efcd3c9505a10d887c8bbd54513442202c',
-        destination='',
-        placement={'driver': 'lib/yambo/driver'},
-        when='@5.0.0:5.0.99'
+        placement={'Ydriver-0.0.2.tar.gz': 'lib/archive/Ydriver-0.0.2.tar.gz'},
+        when='@5.0.0:5.0.99',
+        expand=False
     )
     resource(
         name='Ydriver',
         url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-1.1.0.tar.gz',
         sha256='6c316d613f5a41ddd15efad7ba97e4712f87d7e56c073ba5458caf424afcb97a',
-        destination='',
-        placement={'driver': 'lib/yambo/driver'},
-        when='@5.1.0:5.1.99'
+        placement={'Ydriver-1.1.0.tar.gz': 'lib/archive/Ydriver-1.1.0.tar.gz'},
+        when='@5.1.0:5.1.99',
+        expand=False
     )
     resource(
         name='Ydriver',
         url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.2.0.tar.gz',
         sha256='0f29a44e9c4b49d3f6be3f159a7ef415932b2ae2f2fdba163af60a0673befe6e',
-        destination='lib/yambo/Ydriver',
-        placement={'config': 'config',
-                   'configure': 'configure',
-                   'example': 'example',
-                   'include': 'include',
-                   'lib': 'lib',
-                   'bin': 'bin',
-                   'Makefile': 'Makefile',
-                   'src': 'src',
-               },
-        when='@5.2.0:5.2.3'
+        placement={'1.2.0.tar.gz': 'lib/archive/Ydriver-1.2.0.tar.gz'},
+        when='@5.2.0:5.2.3',
+        expand=False
     )
     resource(
         name='Ydriver',
         url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.4.2.tar.gz',
         sha256='c242f0700a224325ff59326767614a561b02ce16ddb2ce6c13ddd2d5901cc3e4',
-        destination='lib/yambo/Ydriver',
-        placement={'config': 'config',
-                   'configure': 'configure',
-                   'example': 'example',
-                   'include': 'include',
-                   'lib': 'lib',
-                   'bin': 'bin',
-                   'Makefile': 'Makefile',
-                   'src': 'src',
-               },
-        when='@5.2.4'
+        placement={'1.4.2.tar.gz': 'lib/archive/Ydriver-1.4.2.tar.gz'},
+        when='@5.2.4',
+        expand=False
     )
 
     sanity_check_projects = []
@@ -253,36 +240,6 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         if '+nl' in spec:
             bt.append('nl-project')
         return bt
-
-    @run_before('configure')
-    def filter_iotk(self):
-        # block iotk download
-        filter_file('; $(getsrc)', ' ', 'lib/archive/Makefile.loc', string=True)
-        # filter_file('783147', '962173', 'lib/archive/Makefile.loc', when='@:4.5.0')
-        with when('@:5.0.99'):
-            filter_file('( cd ../archive ;', r'#( cd ../archive ;', 'lib/iotk/Makefile.loc', string=True)
-            filter_file('; $(make) $(TARBALL) ; fi )', r'; #$(make) $(TARBALL) ; fi )', 'lib/iotk/Makefile.loc', string=True)
-            filter_file('gunzip', r'#gunzip', 'lib/iotk/Makefile.loc')
-        with when('@5.1.1:'):
-            # set link for iotk lib dir and block tarball uncompress
-            filter_file('! test -d iotk;', ' test -d iotk;', 'lib/iotk/Makefile.loc')
-            filter_file('@$(uncompress)', 'touch uncompress.stamp', 'lib/iotk/Makefile.loc', string=True)
-
-    @run_before('configure')
-    def filter_ydriver(self):
-        spec = self.spec
-        if '@5.1.0:5.1.99' in spec:
-            # solve issue for parallel compilation
-            filter_file('$(MAKE) $(MAKEFLAGS) -f Makefile.loc', 
-                        r'$(MAKE) -f Makefile.loc $(MAKEFLAGS)', 
-                        'config/mk/global/functions/get_libraries.mk',
-                        string=True)
-            # block Ydriver download
-            filter_file('; $(getsrc_git); $(call link_it,"yambo")', ' ', 'lib/archive/Makefile.loc', string=True)
-        if '@5.2.0:5.2.99' in spec:
-            # block Ydriver download
-            filter_file('; $(call getsrc_git,"Ydriver"); $(call copy_driver,"Ydriver")',
-                        ' ', 'lib/archive/Makefile.loc', string=True)
 
     @run_before('configure')
     def filter_configure(self):
