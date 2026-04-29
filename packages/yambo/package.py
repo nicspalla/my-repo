@@ -97,6 +97,12 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         depends_on('scalapack')
     conflicts('+scalapack', when='~mpi', msg="Parallel linear algebra available only with +mpi")
 
+    variant('ydiago', default=True, when='@5.4.0:', description='Enable Ydiago library')
+    with when('+ydiago +scalapack'):
+        variant('elpa', default=False, when='@5.4.0:', description='Activate support for parallel linear algebra with ELPA')
+    with when('+elpa'):
+        depends_on('elpa')
+
     with when('+slepc'):
         depends_on('petsc+complex~superlu-dist~hypre~metis')
         depends_on('petsc+mpi', when='+mpi')
@@ -170,6 +176,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         depends_on("intel-oneapi-mkl threads=openmp", when="^[virtuals=lapack] intel-oneapi-mkl")
         depends_on("fftw +openmp", when="^[virtuals=fftw-api] fftw")
         depends_on("petsc +openmp", when="^[virtuals=petsc] petsc")
+        depends_on("elpa +openmp", when="^[virtuals=elpa] elpa")
 
     # IOTK external resource
     resource(
@@ -177,6 +184,16 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         url='https://github.com/yambo-code/yambo-libraries/raw/master/external/iotk-y1.2.2.tar.gz',
         sha256='64af6a4b98f3b62fcec603e4e1b00ef994f95a0efa53ab6593ebcfe6de1739ef',
         placement={'iotk-y1.2.2.tar.gz': 'lib/archive/iotk-y1.2.2.tar.gz'},
+        expand=False
+    )
+
+    # Ydiago external resource
+    resource(
+        name='Ydiago',
+        url='https://github.com/yambo-code/Ydiago/archive/refs/tags/0.4.1.tar.gz',
+        sha256='32a27807da9ce471b897f81203df51d12eea55e31a8f855f719f35c23c8a1a42',
+        placement={'0.4.1.tar.gz': 'lib/archive/Ydiago-0.4.1.tar.gz'},
+        when='@5.4.0:',
         expand=False
     )
 
@@ -312,6 +329,9 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     def enable_or_disable_parallel_io(self, activated):
         return '--enable-hdf5-par-io' if activated else '--disable-hdf5-par-io'
 
+    def enable_or_disable_ydiago(self, activated):
+        return '--enable-ydiago' if activated else '--disable-ydiago'
+
     def setup_build_environment(self, env):
         spec = self.spec
         if spec['mpi'].name == 'openmpi':
@@ -444,6 +464,17 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                     '--with-blacs-libs={0}'.format(spec['scalapack'].libs),
                     '--with-scalapack-libs={0}'.format(spec['scalapack'].libs),
                 ])
+
+        # Ydiago
+        args.extend(self.enable_or_disable('ydiago'))
+
+        # ELPA
+        if '+elpa' in spec:
+            elpa_omp = "_openmp" if '+openmp' in spec else ""
+            args.extend([
+                '--with-elpa-libs={0}'.format(spec['elpa'].libs),
+                '--with-elpa-includedir={0}/include/{1}{2}-{3}'.format(spec['elpa'].prefix,spec['elpa'].name,elpa_omp,spec['elpa'].version),
+            ])
 
         # PETSc + SLEPc
         if '+slepc' in spec:
