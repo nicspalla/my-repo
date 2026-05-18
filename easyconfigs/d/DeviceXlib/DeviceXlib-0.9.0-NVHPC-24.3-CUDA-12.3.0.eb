@@ -1,0 +1,54 @@
+##
+# Author: Nicola Spallanzani <nicola.spallanzani@cnr.it>
+##
+
+easyblock = 'ConfigureMake'
+
+name = 'DeviceXlib'
+version = '0.9.0'
+
+homepage = 'https://gitlab.com/max-centre/components/devicexlib'
+
+whatis = ['Description: fortran library wrapping device-oriented routines and utilities"']
+
+description = """
+DeviceXlib is a library that wraps device-oriented routines and utilities, such as device data allocation, host-device data transfers. deviceXlib supports CUDA language, together with OpenACC and OpenMP programming paradigms. deviceXlib wraps a subset of functions from Nvidia cuBLAS, Intel oneMKL BLAS and AMD rocBLAS libraries.
+"""
+
+toolchain = {'name': 'NVHPC', 'version': '24.3-CUDA-12.3.0'}
+toolchainopts = {'openmp': True}
+
+source_urls = ['https://gitlab.com/max-centre/components/devicexlib/-/archive/%(version)s/']
+sources = ['devicexlib-%(version)s.tar.gz']
+checksums = ['77c57a31381a69a2eb2a77138b131a553c96aff03ca934c88b8a6d8434b39460']
+
+#dependencies = [
+#    ('BLIS', '3.1', '-amd', ('GCCcore', '12.2.0')),
+#]
+
+preconfigopts = ' && '.join([
+    'export CPP="cpp -P"',
+    'export FPP="cpp -P -traditional"',
+    'export F90FLAGS="-fast -Mcache_align -Mpreprocess -Mlarge_arrays"',
+    'export CFLAGS="-O3"',
+]) + ' && '
+
+configopts = ' '.join([
+    'F90=nvfortran CC=nvc',
+    '--enable-cuda-fortran',
+    '--enable-parallel=no',
+    '--disable-cuda-env-check',
+    '--with-cuda-cc=$(echo %(cuda_compute_capabilities)s | tr -d .)',
+    '--enable-cublas=yes',
+    '--with-blas-libs="-lblas"',
+])
+
+buildopts = 'all'
+
+sanity_check_paths = {
+    'files': ['lib/libdevXlib.a'],
+    'dirs': ['bin']
+}
+
+moduleclass = 'phys'
+
